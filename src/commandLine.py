@@ -1,4 +1,4 @@
-import os, subprocess, platform
+import os, subprocess, platform, hashlib
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -231,10 +231,41 @@ class CLI:
             if len(args[0]) == 0:
                 subprocess.run(["lapce"], check=True)
             else:
-                subprocess.run(["lacpe"] + [a for a in args], check=True)
+                subprocess.run(["lapce"] + [a for a in args], check=True)
         except Exception as e:
             print(e)
         return
+
+    def checksum(self, *args) -> None:
+        def chksum(function: str, filename: str) -> str:
+            match function:
+                case "sha256":
+                    with open(filename, "r") as f:
+                        return hashlib.sha256(f.read().encode()).hexdigest()
+                case "sha512":
+                    with open(filename, "r") as f:
+                        return hashlib.sha512(f.read().encode()).hexdigest()
+            return ValueError("unknown hash function")
+
+        def check(function: str, filename: str, csum: str) -> bool | ValueError:
+            match function:
+                case "sha256":
+                    with open(filename, "r") as f:
+                        return csum == hashlib.sha256(f.read().encode()).hexdigest()
+                case "sha512":
+                    with open(filename, "r") as f:
+                        return csum == hashlib.sha512(f.read().encode()).hexdigest()
+            return ValueError("unknown hash function")
+
+        try:
+            args = args[0].split()
+            match len(args):
+                case 2:
+                    print(chksum(args[0], args[1]))
+                case 3:
+                    print(check(args[0], args[1], args[2]))
+        except ValueError as e:
+            print(e)
 
 
 commands = {
@@ -256,5 +287,6 @@ commands = {
     "node": CLI.node,
     "code": CLI.code,
     "subl": CLI.subl,
+    "chksum": CLI.checksum,
 }
 browsers = ["brave", "opera"]
