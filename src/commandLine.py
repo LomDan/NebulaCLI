@@ -112,7 +112,6 @@ class CLI:
         there is no browser command in nebula however,\n
         as to open a new instance, you should type the name of the browser
         """
-        """
         match name:
             case "brave":
                 subprocess.Popen(
@@ -130,7 +129,6 @@ class CLI:
                 subprocess.Popen(
                     "---insert path to edge here---"
                 )
-            """
         return
 
     def file_explorer(self, *args) -> None:
@@ -300,11 +298,11 @@ class CLI:
         try:
             if len(args[0]) == 0:
                 subprocess.run(
-                    ["C:\\Program Files\\Sublime Text\\subl.exe"], check=True
+                    ["---insert path to sublime text here---"], check=True
                 )
             else:
                 subprocess.run(
-                    ["C:\\Program Files\\Sublime Text\\subl.exe"] + [a for a in args],
+                    ["---insert path to sublime text here---"] + [a for a in args],
                     check=True,
                 )
         except Exception as e:
