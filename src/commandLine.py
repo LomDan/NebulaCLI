@@ -19,6 +19,10 @@ class Colors:
 
 
 class CLI:
+    """
+    Base class for the nebula cli itself
+    """
+
     def __init__(self, user: str, home: str) -> None:
         self.user: str = user
         self.home: str = home
@@ -29,6 +33,9 @@ class CLI:
         return
 
     def echo(self, string: str) -> None:
+        """
+        writes text to system.stdout, it can also write certain variables in with that text
+        """
         if (string.__contains__("$")) and (string.count("$") == 2):
             match string[string.find("$") + 1 : string.rfind("$")]:
                 case "user":
@@ -53,6 +60,11 @@ class CLI:
         return
 
     def ls(self, dir: str) -> None:
+        """
+        lists all files and sub-directories within a directory\n
+        if you type ls, it will list the current dir\n
+        however, if you specify a sub-directory (ls *sub-dir*), it will list the sub-directory you specified
+        """
         try:
             if dir == "":
                 print(f"\n----{self.cwd}----")
@@ -73,6 +85,9 @@ class CLI:
         return
 
     def cd(self, path: str) -> None:
+        """
+        cd changes the current working directory
+        """
         try:
             if (path != "\\") and (path != "/") and (path != ".."):
                 self.cwd += path + "\\"
@@ -92,6 +107,11 @@ class CLI:
         return
 
     def browser(self, name: str) -> None:
+        """
+        used to open up browser instances\n
+        there is no browser command in nebula however,\n
+        as to open a new instance, you should type the name of the browser
+        """
         match name:
             case "brave":
                 subprocess.Popen(
@@ -104,7 +124,10 @@ class CLI:
         return
 
     def file_explorer(self, *args) -> None:
-        # subprocess.Popen("C:\\Windows\\explorer.exe")
+        """
+        opens up a new file explorer instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["explorer"])
@@ -115,7 +138,11 @@ class CLI:
         return
         return
 
-    def python(self, args: str) -> None:
+    def python(self, *args: str) -> None:
+        """
+        opens up a new python interpreter instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["python"], check=True)
@@ -126,6 +153,10 @@ class CLI:
         return
 
     def pip(self, *args) -> None:
+        """
+        opens up a new pip instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["pip"], check=True)
@@ -136,6 +167,10 @@ class CLI:
         return
 
     def git(self, *args) -> None:
+        """
+        opens up a new git instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["git"])
@@ -146,6 +181,10 @@ class CLI:
         return
 
     def node(self, *args) -> None:
+        """
+        opens up a new node.js instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["node"], check=True)
@@ -156,6 +195,9 @@ class CLI:
         return
 
     def display(self, *args) -> None:
+        """
+        displays some system info and some info about nebula itself
+        """
         print(
             f"""
              {Colors.PURPLE}
@@ -183,24 +225,40 @@ class CLI:
         return
 
     def mkfile(self, filename: str) -> None:
+        """
+        creates a new file
+        """
         with open(filename, "w") as f:
             f.write("")
         return
 
     def rm(self, filename: str) -> None:
+        """
+        removes or deletes a file
+        """
         os.remove(filename)
         return
 
     def cat(self, filename: str) -> None:
+        """
+        reads the contents of a file and writes it to system.stdout
+        """
         with open(filename, "r") as f:
             print(f.read())
         return
 
     def cls(self, *args) -> None:
+        """
+        clears the console
+        """
         print(Colors.CLEAR)
         return
 
     def nvim(self, *args) -> None:
+        """
+        opens up a new neovim instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["nvim"], check=True)
@@ -211,6 +269,10 @@ class CLI:
         return
 
     def code(self, *args) -> None:
+        """
+        opens up a new VS code instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["code"], check=True)
@@ -221,6 +283,10 @@ class CLI:
         return
 
     def subl(self, *args) -> None:
+        """
+        opens up a new Sublime Text instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(
@@ -236,6 +302,10 @@ class CLI:
         return
 
     def lapce(self, *args) -> None:
+        """
+        opens up a new lapce instance\n
+        takes command line arguments
+        """
         try:
             if len(args[0]) == 0:
                 subprocess.run(["lapce"], check=True)
@@ -246,7 +316,16 @@ class CLI:
         return
 
     def checksum(self, *args) -> None:
+        """
+        checksums a file\n
+        currently only supports sha256 and sha512\n\n
+        particularly useful for working with .iso files
+        """
+
         def chksum(function: str, filename: str) -> str | ValueError:
+            """
+            used for when you simply want to see the checksum of a file
+            """
             match function:
                 case "sha256":
                     with open(filename, "r") as f:
@@ -257,6 +336,9 @@ class CLI:
             return ValueError("unknown hash function")
 
         def check(function: str, filename: str, csum: str) -> bool | ValueError:
+            """
+            used for when you want to check if the checksum of a file matches an existing checksum
+            """
             match function:
                 case "sha256":
                     with open(filename, "r") as f:
@@ -278,6 +360,10 @@ class CLI:
 
 
 class Prompt:
+    """
+    Base class for the prompt displayed inside of the nebula cli
+    """
+
     def __init__(self, cli: CLI) -> None:
         self.usr: str = cli.user
         self.cwd: str = cli.cwd
@@ -287,6 +373,10 @@ class Prompt:
         self.cli: CLI = cli
 
         def read() -> str | None:
+            """
+            gets the contents of the usr.config file, if it exists\n
+            if it doesn't exist creates the folder 'usr config' and creates the new usr.config file
+            """
             try:
                 with open(
                     "C:\\Software Development\\Game\\usr config\\usr.config", "r"
@@ -308,6 +398,10 @@ class Prompt:
         return
 
     def alias(self) -> None:
+        """
+        checks if the config file contains a config for the current user\n
+        if so updates all the info that Prompt class needs
+        """
         if len(self.usr_config) > 0:
             info = self.usr_config.split(sep="}\n")
             idx = -1
@@ -327,7 +421,10 @@ class Prompt:
                             self.change = True
         return
 
-    def config(self, config: str):
+    def config(self, config: str) -> None:
+        """
+        configures the prompt according to the info read from the config file
+        """
         specials = {"usr": self.usr, "cwd": "\x01"}
 
         def check(string: str) -> str:
@@ -349,6 +446,11 @@ class Prompt:
         return
 
     def _prompt(self) -> str:
+        """
+        returns the prompt\n
+        if the current wokring directory is the same as the home directory\n
+        otherwise it replaces the \\x01 byte with the current wokring directory
+        """
         if self.home != os.getcwd():
             return self.prompt.replace("\x01", f"{os.getcwd()} ")
         return self.prompt
