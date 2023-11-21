@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Colors:
+    CLEAR = "\x1bc\x1b[H"
     RESET = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
@@ -73,11 +74,11 @@ class CLI:
 
     def cd(self, path: str) -> None:
         try:
-            if (path != "\\") and (path != ".."):
+            if (path != "\\") and (path != "/") and (path != ".."):
                 self.cwd += path + "\\"
                 for i in path.split(sep="\\"):
                     self.tree.append(i + "\\")
-            elif path == "\\":
+            elif (path == "\\") or (path == "/"):
                 self.cwd = self.home
                 self.tree = [self.home]
             elif path == "..":
@@ -103,7 +104,15 @@ class CLI:
         return
 
     def file_explorer(self, *args) -> None:
-        subprocess.Popen("C:\\Windows\\explorer.exe")
+        # subprocess.Popen("C:\\Windows\\explorer.exe")
+        try:
+            if len(args[0]) == 0:
+                subprocess.run(["explorer"])
+            else:
+                subprocess.run(["explorer"] + [a for a in args])
+        except Exception as e:
+            print(e)
+        return
         return
 
     def python(self, args: str) -> None:
@@ -151,11 +160,11 @@ class CLI:
             f"""
              {Colors.PURPLE}
               _   _   _____   ____    _     _   _        ____
-             | \ | | | ____| |  _ \  | |   | | | |      / _  \\
-             |  \| | | |___  | |_| | | |   | | | |     | |_|  |
-             | \ \ | | ____| |____/  | |   | | | |     |  __  | 
-             | |\  | | |___  |  _ \  | |___| | | |___  | |  | | 
-             | | \_| |_____| | |_| | |_______| |_____| | |  |_| 
+             | \\ | | | ____| |  _ \\  | |   | | | |      / _  \\
+             |  \\| | | |___  | |_| | | |   | | | |     | |_|  |
+             | \\ \\ | | ____| |____/  | |   | | | |     |  __  | 
+             | |\\  | | |___  |  _ \\  | |___| | | |___  | |  | | 
+             | | \\_| |_____| | |_| | |_______| |_____| | |  |_| 
              |_|             |____/                    |_|
              {Colors.RESET}
             Nebula CLI
@@ -188,7 +197,7 @@ class CLI:
         return
 
     def cls(self, *args) -> None:
-        print("\x1bc\x1b[H")
+        print(Colors.CLEAR)
         return
 
     def nvim(self, *args) -> None:
@@ -237,7 +246,7 @@ class CLI:
         return
 
     def checksum(self, *args) -> None:
-        def chksum(function: str, filename: str) -> str:
+        def chksum(function: str, filename: str) -> str | ValueError:
             match function:
                 case "sha256":
                     with open(filename, "r") as f:
@@ -266,6 +275,83 @@ class CLI:
                     print(check(args[0], args[1], args[2]))
         except ValueError as e:
             print(e)
+
+
+class Prompt:
+    def __init__(self, cli: CLI) -> None:
+        self.usr: str = cli.user
+        self.cwd: str = cli.cwd
+        self.home: str = cli.home
+        self.prompt: str = f"({self.usr}) \x01~ $ "
+        self.change: bool = False
+        self.cli: CLI = cli
+
+        def read() -> str | None:
+            try:
+                with open(
+                    "C:\\Software Development\\Game\\usr config\\usr.config", "r"
+                ) as f:
+                    return f.read()
+            except:
+                os.mkdir("C:\\Software Development\\Game\\usr config")
+                with open(
+                    "C:\\Software Development\\Game\\usr config\\usr.config", "w"
+                ) as f:
+                    f.write("")
+                read()
+            return
+
+        if isinstance((x := read()), str):
+            self.usr_config = x
+        self.alias()
+        self.config(self.prompt)
+        return
+
+    def alias(self) -> None:
+        if len(self.usr_config) > 0:
+            info = self.usr_config.split(sep="}\n")
+            idx = -1
+            for i in info:
+                if i[i.find("usr@") + len("usr@") : i.find(" ")] == os.getlogin():
+                    idx = info.index(i)
+                    break
+            if idx != -1:
+                info = info[idx].splitlines()
+                for i in info:
+                    idx = i.split()
+                    match idx[0]:
+                        case "alias":
+                            self.usr = idx[2]
+                        case "prompt":
+                            self.prompt = " ".join(idx[2:]) + " "
+                            self.change = True
+        return
+
+    def config(self, config: str):
+        specials = {"usr": self.usr, "cwd": "\x01"}
+
+        def check(string: str) -> str:
+            res = []
+            for i in range(len(string)):
+                if string[i] == "*":
+                    res.append(i)
+            res = list(zip(res, res[1:] + res[:1]))
+            res = [i for i in res if res.index(i) % 2 == 0]
+            for a, b in res:
+                match string[a + 1 : b]:
+                    case "usr":
+                        string = string[:a] + specials["usr"] + string[b + 1 :]
+                    case "cwd":
+                        string = string[:a] + specials["cwd"] + string[b + 1 :]
+            return string
+
+        self.prompt = check(config)
+        return
+
+    def _prompt(self) -> str:
+        if self.home != os.getcwd():
+            return self.prompt.replace("\x01", f"{os.getcwd()} ")
+        return self.prompt
 
 
 commands = {
