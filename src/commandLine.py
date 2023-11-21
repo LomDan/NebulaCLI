@@ -112,15 +112,25 @@ class CLI:
         there is no browser command in nebula however,\n
         as to open a new instance, you should type the name of the browser
         """
+        """
         match name:
             case "brave":
                 subprocess.Popen(
-                    "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+                    "---insert path to brave here---"
                 )
             case "opera":
                 subprocess.Popen(
-                    "C:\\Users\\stacy\\AppData\\Local\\Programs\\Opera\\launcher.exe"
+                    "---insert path to opera here---"
                 )
+            case "chrome":
+                subprocess.Popen(
+                    "---insert path to chrome here---"
+                )
+            case "edge":
+                subprocess.Popen(
+                    "---insert path to edge here---"
+                )
+            """
         return
 
     def file_explorer(self, *args) -> None:
