@@ -1,35 +1,44 @@
-import os, subprocess, platform, hashlib
+# --- imports ---
+import os, subprocess, platform, hashlib, usrconfig, shutil
 from datetime import datetime
 from dataclasses import dataclass
 
 
-@dataclass
-class Colors:
-    CLEAR = "\x1bc\x1b[H"
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-    RED = "\033[91m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    BLUE = "\033[94m"
-    PURPLE = "\033[95m"
-    CYAN = "\033[96m"
-    WHITE = "\033[97m"
+# --- custom errors ---
+class PathRequiredError(BaseException):
+    """
+    Used for when a command might be a system command but is not listed in the system
+    """
+
+    ...
 
 
+class CommandNotFoundError(BaseException):
+    """
+    Used to check if a command is not found
+    """
+
+    ...
+
+
+# --- base classes ---
 class CLI:
     """
     Base class for the nebula cli itself
     """
 
     def __init__(self, user: str, home: str) -> None:
-        self.user: str = user
+        self.usr: str = user
         self.home: str = home
         os.chdir(self.home)
         self.cwd: str = home
         self.tree: list[str] = [self.home]
         self.cache: str = ""
+        self.hot_reload()
+        return
+
+    def hot_reload(self) -> None:
+        self.prompt = Prompt(self)
         return
 
     def echo(self, string: str) -> None:
@@ -41,7 +50,7 @@ class CLI:
                 case "user":
                     string = (
                         string[: string.find("$")]
-                        + self.user
+                        + self.usr
                         + string[string.rfind("$") + 1 :]
                     )
                 case "home":
@@ -103,7 +112,7 @@ class CLI:
             self.cache = self.cwd
         except:
             self.cwd = self.cache
-            print("Directory not found")
+            print("\n\tDirectory not found\n")
         return
 
     def browser(self, name: str) -> None:
@@ -115,91 +124,12 @@ class CLI:
         match name:
             case "brave":
                 subprocess.Popen(
-                    "---insert path to brave here---"
+                    "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
                 )
             case "opera":
                 subprocess.Popen(
-                    "---insert path to opera here---"
+                    "C:\\Users\\stacy\\AppData\\Local\\Programs\\Opera\\launcher.exe"
                 )
-            case "chrome":
-                subprocess.Popen(
-                    "---insert path to chrome here---"
-                )
-            case "edge":
-                subprocess.Popen(
-                    "---insert path to edge here---"
-                )
-        return
-
-    def file_explorer(self, *args) -> None:
-        """
-        opens up a new file explorer instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["explorer"])
-            else:
-                subprocess.run(["explorer"] + [a for a in args])
-        except Exception as e:
-            print(e)
-        return
-        return
-
-    def python(self, *args: str) -> None:
-        """
-        opens up a new python interpreter instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["python"], check=True)
-            else:
-                subprocess.run(["python"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
-        return
-
-    def pip(self, *args) -> None:
-        """
-        opens up a new pip instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["pip"], check=True)
-            else:
-                subprocess.run(["pip"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
-        return
-
-    def git(self, *args) -> None:
-        """
-        opens up a new git instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["git"])
-            else:
-                subprocess.run(["git"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
-        return
-
-    def node(self, *args) -> None:
-        """
-        opens up a new node.js instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["node"], check=True)
-            else:
-                subprocess.run(["node"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
         return
 
     def display(self, *args) -> None:
@@ -247,12 +177,36 @@ class CLI:
         os.remove(filename)
         return
 
+    def rmdir(self, dirname: str) -> None:
+        """
+        removes or deletes a directory
+        """
+        try:
+            os.rmdir(dirname)
+        except:
+            try:
+                shutil.rmtree(dirname)
+            except Exception as e:
+                print(e)
+        return
+
     def cat(self, filename: str) -> None:
         """
         reads the contents of a file and writes it to system.stdout
         """
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                print(f.read())
+            return
+        else:
+            print("\n\tFile not found\n")
+
+    def catb(self, filename: str) -> None:
+        """
+        reads the contents of a file and writes the bytes to system.stdout
+        """
         with open(filename, "r") as f:
-            print(f.read())
+            print(f.read().encode())
         return
 
     def cls(self, *args) -> None:
@@ -262,66 +216,64 @@ class CLI:
         print(Colors.CLEAR)
         return
 
-    def nvim(self, *args) -> None:
-        """
-        opens up a new neovim instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["nvim"], check=True)
-            else:
-                subprocess.run(["nvim"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
-        return
-
-    def code(self, *args) -> None:
-        """
-        opens up a new VS code instance\n
-        takes command line arguments
-        """
-        try:
-            if len(args[0]) == 0:
-                subprocess.run(["code"], check=True)
-            else:
-                subprocess.run(["code"] + [a for a in args], check=True)
-        except Exception as e:
-            print(e)
-        return
-
     def subl(self, *args) -> None:
         """
         opens up a new Sublime Text instance\n
         takes command line arguments
         """
+        path = ""
+        match platform.system():
+            case "Windows":
+                if os.path.exists("C:\\Program Files\\Sublime Text"):
+                    path = "C:\\Program Files\\Sublime Text\\subl.exe"
+                elif os.path.exists("C:\\Program Files (x86)\\Sublime Text"):
+                    path = "C:\\Program Files (x86)\\Sublime Text\\subl.exe"
+            case "Linux":
+                path = "subl"
         try:
             if len(args[0]) == 0:
-                subprocess.run(
-                    ["---insert path to sublime text here---"], check=True
-                )
+                subprocess.run([path])
             else:
-                subprocess.run(
-                    ["---insert path to sublime text here---"] + [a for a in args],
-                    check=True,
-                )
+                subprocess.run([path] + [a for a in args])
         except Exception as e:
-            print(e)
+            raise e
         return
 
-    def lapce(self, *args) -> None:
-        """
-        opens up a new lapce instance\n
-        takes command line arguments
-        """
+    def system_process(self, *args) -> None | PathRequiredError:
         try:
-            if len(args[0]) == 0:
-                subprocess.run(["lapce"], check=True)
+            if len(args[0][1:]) == 0:
+                subprocess.run([args[0][0]])
+                print("noice")
             else:
-                subprocess.run(["lapce"] + [a for a in args], check=True)
+                subprocess.run([args[0][0]] + [a for a in args[0][1:]])
+            return
         except Exception as e:
-            print(e)
-        return
+            raise PathRequiredError
+
+    def system_process_path(self, *args) -> None:
+        try:
+            match args[0][0]:
+                case "subl":
+                    self.subl(args[0][1:])
+                case "brave":
+                    self.browser("brave")
+                case "opera":
+                    self.browser("opera")
+            return
+        except Exception as e:
+            raise e
+
+    def handle(self, *args) -> None:
+        try:
+            self.system_process(args[0])
+        except PathRequiredError:
+            try:
+                if self.system_process_path(args[0]) != None:
+                    raise CommandNotFoundError
+            except CommandNotFoundError as e:
+                raise e
+            except Exception as e:
+                raise e
 
     def checksum(self, *args) -> None:
         """
@@ -366,6 +318,16 @@ class CLI:
         except ValueError as e:
             print(e)
 
+    def config(self, *args) -> None:
+        usrconfig.UsrConfig(self.usr).config()
+        self.hot_reload()
+        return
+
+    def list_all(self, *args) -> None:
+        for i in list(commands.keys()):
+            print(i)
+        return
+
 
 class Prompt:
     """
@@ -373,10 +335,10 @@ class Prompt:
     """
 
     def __init__(self, cli: CLI) -> None:
-        self.usr: str = cli.user
+        self.usr: str = cli.usr
         self.cwd: str = cli.cwd
         self.home: str = cli.home
-        self.prompt: str = f"({self.usr}) \x01~ $ "
+        self.prompt: str = f"({self.usr}) \u0091~ $ "
         self.change: bool = False
         self.cli: CLI = cli
 
@@ -387,20 +349,26 @@ class Prompt:
             """
             try:
                 with open(
-                    "C:\\Software Development\\Game\\usr config\\usr.config", "r"
+                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\usr.config", "r"
                 ) as f:
                     return f.read()
             except:
-                os.mkdir("C:\\Software Development\\Game\\usr config")
+                os.mkdir(os.path.expanduser("~") + "\\NebulaCLI\\usr config")
                 with open(
-                    "C:\\Software Development\\Game\\usr config\\usr.config", "w"
+                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\usr.config", "w"
                 ) as f:
                     f.write("")
-                read()
+                with open(
+                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\configed.list",
+                    "w",
+                ) as f:
+                    f.write("")
             return
 
         if isinstance((x := read()), str):
             self.usr_config = x
+        else:
+            self.usr_config = ""
         self.alias()
         self.config(self.prompt)
         return
@@ -433,7 +401,7 @@ class Prompt:
         """
         configures the prompt according to the info read from the config file
         """
-        specials = {"usr": self.usr, "cwd": "\x01"}
+        specials = {"usr": self.usr, "cwd": "\u0091"}
 
         def check(string: str) -> str:
             res = []
@@ -457,11 +425,27 @@ class Prompt:
         """
         returns the prompt\n
         if the current wokring directory is the same as the home directory\n
-        otherwise it replaces the \\x01 byte with the current wokring directory
+        otherwise it replaces the \\x00 byte with the current wokring directory
         """
         if self.home != os.getcwd():
-            return self.prompt.replace("\x01", f"{os.getcwd()} ")
+            return self.prompt.replace("\u0091", f"{os.getcwd()} ")
         return self.prompt
+
+
+# --- resources ---
+@dataclass
+class Colors:
+    CLEAR = "\x1bc\x1b[H"
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    PURPLE = "\033[95m"
+    CYAN = "\033[96m"
+    WHITE = "\033[97m"
 
 
 commands = {
@@ -469,20 +453,49 @@ commands = {
     "echo": CLI.echo,
     "ls": CLI.ls,
     "cd": CLI.cd,
-    "brave": CLI.browser,
-    "opera": CLI.browser,
-    "explorer": CLI.file_explorer,
     "display": CLI.display,
     "mkfile": CLI.mkfile,
     "rm": CLI.rm,
     "cat": CLI.cat,
-    "nvim": CLI.nvim,
-    "python": CLI.python,
-    "pip": CLI.pip,
-    "git": CLI.git,
-    "node": CLI.node,
-    "code": CLI.code,
-    "subl": CLI.subl,
+    "catb": CLI.catb,
     "chksum": CLI.checksum,
+    "config": CLI.config,
+    "--list": CLI.list_all,
+    "rmdir": CLI.rmdir,
 }
 browsers = ["brave", "opera"]
+
+"""
+---
+added read file bytes (catb)
+---
+
+---
+changed \\x01 byte placeholder to unicode \\u0091 private use character in prompt class
+---
+
+---
+added file: usrconfig.py
+created base class
+added standard commands
+added write on quit
+added 'hot reload', i.e once you've configed you don't have to exit before your changes take effect
+---
+
+---
+added the system_process function
+which handles commands like nvim, python etc.
+instead of having to hard code all of the execution of these
+---
+
+---
+refactored system command handler
+fixed a bug with 'command not found'
+for some odd reason now the bug with the vs code external terminal fixed itself...
+---
+
+---
+added rmdir command 
+    because for some reason I forgot that one...
+---
+"""

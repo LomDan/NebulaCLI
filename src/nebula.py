@@ -2,12 +2,11 @@ import commandLine, os
 
 
 def main() -> None:
-    x = commandLine.CLI(os.getlogin(), "C:\\")
-    prmpt = commandLine.Prompt(x)
+    x = commandLine.CLI(os.getlogin(), os.path.expanduser("~"))
     x.cls()
     while True:
         try:
-            cmd = input(prmpt._prompt())
+            cmd = input(x.prompt._prompt())
             if cmd != "":
                 tmp = cmd.split()
                 if tmp[0] in commandLine.commands:
@@ -17,7 +16,12 @@ def main() -> None:
                         x, tmp[0]
                     )
                 else:
-                    print("\n\tCommand not recognized.\n")
+                    try:
+                        x.handle(tmp)
+                    except commandLine.CommandNotFoundError:
+                        print("\n\tCommand not recognized.\n")
+                    except Exception as e:
+                        print(e)
         except KeyboardInterrupt:
             x.cls()
             break
