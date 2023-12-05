@@ -21,50 +21,63 @@ class CommandNotFoundError(BaseException):
     ...
 
 
+# --- modified classes ---
+
+
+class str(str):
+    def find_all(self, char: str) -> list[tuple[int]]:
+        index = []
+        for i in range(len(self)):
+            if self[i] == char:
+                index.append(i)
+        paired = list(zip(index, index[1:]))
+        return [i for i in paired if paired.index(i) % 2 == 0]
+
+
 # --- base classes ---
 class CLI:
     """
     Base class for the nebula cli itself
     """
 
-    def __init__(self, user: str, home: str) -> None:
-        self.usr: str = user
-        self.home: str = home
+    def __init__(self) -> None:
+        self.usr: str = os.getlogin()
+        self.home: str = os.path.expanduser("~") + "\\"
         os.chdir(self.home)
-        self.cwd: str = home
+        self.cwd: str = self.home
         self.tree: list[str] = [self.home]
-        self.cache: str = ""
+        self.cache: str = self.cwd
         self.hot_reload()
+        self.commands = {
+            "clear": CLI.cls,
+            "echo": CLI.echo,
+            "ls": CLI.ls,
+            "cd": CLI.cd,
+            "display": CLI.display,
+            "mkfile": CLI.mkfile,
+            "rm": CLI.rm,
+            "cat": CLI.cat,
+            "catb": CLI.catb,
+            "chksum": CLI.checksum,
+            "config": CLI.config,
+            "list": CLI.list_all,
+            "rmdir": CLI.rmdir,
+        }
+        self.browsers = ["brave", "opera"]
         return
 
     def hot_reload(self) -> None:
-        self.prompt = Prompt(self)
+        if os.path.exists(os.path.expanduser("~") + "\\NebulaCLI"):
+            self.prompt = Prompt(self)
+        else:
+            os.mkdir(os.path.expanduser("~") + "\\NebulaCLI")
+            self.prompt = Prompt(self)
         return
 
     def echo(self, string: str) -> None:
         """
         writes text to system.stdout, it can also write certain variables in with that text
         """
-        if (string.__contains__("$")) and (string.count("$") == 2):
-            match string[string.find("$") + 1 : string.rfind("$")]:
-                case "user":
-                    string = (
-                        string[: string.find("$")]
-                        + self.usr
-                        + string[string.rfind("$") + 1 :]
-                    )
-                case "home":
-                    string = (
-                        string[: string.find("$")]
-                        + self.home
-                        + string[string.rfind("$") + 1 :]
-                    )
-                case "cwd":
-                    string = (
-                        string[: string.find("$")]
-                        + self.cwd
-                        + string[string.rfind("$") + 1 :]
-                    )
         print(string)
         return
 
@@ -97,21 +110,29 @@ class CLI:
         """
         cd changes the current working directory
         """
+        if path.__contains__("/"):
+            path = path.replace("/", "\\", path.count("/"))
+        if path.__contains__(self.cwd):
+            path = path[path.index(self.cwd) + len(self.cwd) :]
         try:
-            if (path != "\\") and (path != "/") and (path != ".."):
+            if len(path) > 2:
                 self.cwd += path + "\\"
-                for i in path.split(sep="\\"):
-                    self.tree.append(i + "\\")
-            elif (path == "\\") or (path == "/"):
-                self.cwd = self.home
-                self.tree = [self.home]
+                [self.tree.append(i + "\\") for i in path.split(sep="\\")]
+                os.chdir(self.cwd)
+                self.cache = self.cwd
+            elif path == "\\":
+                os.chdir("\\")
+                self.cwd = os.getcwd()
+                self.tree = [self.cwd]
+                self.cache = self.cwd
             elif path == "..":
                 self.tree.pop()
                 self.cwd = "".join(self.tree)
-            os.chdir(self.cwd)
-            self.cache = self.cwd
+                os.chdir(self.cwd)
+                self.cache = self.cwd
         except:
             self.cwd = self.cache
+            os.chdir(self.cwd)
             print("\n\tDirectory not found\n")
         return
 
@@ -148,7 +169,6 @@ class CLI:
              |_|             |____/                    |_|
              {Colors.RESET}
             Nebula CLI
-            Unleash the Power of Nebula: Where Command Lines Reach for the Stars!
             
              __________________________________________________________________
             |System info:                                                   
@@ -240,40 +260,54 @@ class CLI:
         return
 
     def system_process(self, *args) -> None | PathRequiredError:
+        """
+        for all system processes
+        """
         try:
             if len(args[0][1:]) == 0:
                 subprocess.run([args[0][0]])
-                print("noice")
             else:
                 subprocess.run([args[0][0]] + [a for a in args[0][1:]])
             return
         except Exception as e:
             raise PathRequiredError
 
-    def system_process_path(self, *args) -> None:
+    def system_process_path(self, *args) -> None | Exception:
+        """
+        for all commands that require a path
+        """
         try:
+            handled: bool = False
             match args[0][0]:
                 case "subl":
                     self.subl(args[0][1:])
+                    handled = True
                 case "brave":
                     self.browser("brave")
+                    handled = True
                 case "opera":
                     self.browser("opera")
+                    handled = True
+            if not handled:
+                raise CommandNotFoundError()
             return
         except Exception as e:
-            raise e
+            return e
 
     def handle(self, *args) -> None:
+        """
+        handles all system process commands like nvim, etc.\n
+        if they aren't system processes then it tries to check for a path
+        """
         try:
-            self.system_process(args[0])
+            if args[0][0] in self.prompt.plugins:
+                subprocess.run(self.prompt.plugins[args[0][0]])
+            else:
+                self.system_process(args[0])
+            return
         except PathRequiredError:
-            try:
-                if self.system_process_path(args[0]) != None:
-                    raise CommandNotFoundError
-            except CommandNotFoundError as e:
-                raise e
-            except Exception as e:
-                raise e
+            self.system_process_path(args[0])
+            return
 
     def checksum(self, *args) -> None:
         """
@@ -324,8 +358,33 @@ class CLI:
         return
 
     def list_all(self, *args) -> None:
-        for i in list(commands.keys()):
-            print(i)
+        [print(i) for i in list(self.commands.keys())]
+        return
+
+    def command(self, cmd: str) -> None:
+        cmd = str(cmd)
+        specials = {
+            "usr": lambda: self.usr,
+            "home": lambda: self.home,
+            "cwd": lambda: self.cwd,
+            "date": datetime.now,
+        }
+        if cmd.__contains__("$") and cmd.count("$") % 2 == 0:
+            for a, b in cmd.find_all("$"):
+                if cmd[a + 1 : b] in specials:
+                    cmd = cmd[:a] + str(specials[cmd[a + 1 : b]]()) + cmd[b + 1 :]
+        tmp = cmd.split()
+        if tmp[0] in self.commands:
+            self.commands[tmp[0]](self, cmd[len(tmp[0]) + 1 :]) if tmp[
+                0
+            ] not in self.browsers else self.commands[tmp[0]](self, tmp[0])
+        else:
+            try:
+                self.handle(tmp)
+            except CommandNotFoundError:
+                print("\n\tCommand not recognized.\n")
+            except Exception as e:
+                print(e)
         return
 
 
@@ -338,8 +397,9 @@ class Prompt:
         self.usr: str = cli.usr
         self.cwd: str = cli.cwd
         self.home: str = cli.home
-        self.prompt: str = f"({self.usr}) \u0091~ $ "
+        self.prompt = lambda: f"({self.usr}) \u0091~ $ "
         self.change: bool = False
+        self.plugins: dict[str, str] = {}
         self.cli: CLI = cli
 
         def read() -> str | None:
@@ -347,30 +407,28 @@ class Prompt:
             gets the contents of the usr.config file, if it exists\n
             if it doesn't exist creates the folder 'usr config' and creates the new usr.config file
             """
-            try:
-                with open(
-                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\usr.config", "r"
-                ) as f:
-                    return f.read()
-            except:
-                os.mkdir(os.path.expanduser("~") + "\\NebulaCLI\\usr config")
-                with open(
-                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\usr.config", "w"
-                ) as f:
+            if os.path.exists(
+                (
+                    x := os.path.expanduser("~")
+                    + "\\NebulaCLI\\usr config\\usr.usrconfig"
+                )
+            ):
+                with open(x, "r") as f:
+                    return str(f.read())
+            else:
+                os.mkdir((x := os.path.expanduser("~") + "\\NebulaCLI\\usr config"))
+                with open(x + "\\usr.usrconfig", "w") as f:
                     f.write("")
-                with open(
-                    os.path.expanduser("~") + "\\NebulaCLI\\usr config\\configed.list",
-                    "w",
-                ) as f:
+                with open(x + "\\configed.list", "w") as f:
                     f.write("")
-            return
+                return
 
         if isinstance((x := read()), str):
             self.usr_config = x
         else:
             self.usr_config = ""
         self.alias()
-        self.config(self.prompt)
+        self.config(self.prompt())
         return
 
     def alias(self) -> None:
@@ -391,10 +449,21 @@ class Prompt:
                     idx = i.split()
                     match idx[0]:
                         case "alias":
-                            self.usr = idx[2]
+                            self.usr = " ".join(idx[2:])
                         case "prompt":
                             self.prompt = " ".join(idx[2:]) + " "
                             self.change = True
+                        case "plugin":
+                            for i in range(
+                                len([i for i in idx[2:] if idx[2:].index(i) % 2 == 0])
+                            ):
+                                self.plugins[
+                                    (x := idx[2:][i])[x.find("'") + 1 : x.rfind("'")]
+                                ] = (x := idx[2:][i + 1])[
+                                    x.find("'") + 1 : x.rfind("'")
+                                ].replace(
+                                    "\\\\", "\\"
+                                )
         return
 
     def config(self, config: str) -> None:
@@ -414,22 +483,25 @@ class Prompt:
                 match string[a + 1 : b]:
                     case "usr":
                         string = string[:a] + specials["usr"] + string[b + 1 :]
+                        print("shot")
                     case "cwd":
                         string = string[:a] + specials["cwd"] + string[b + 1 :]
+                    case "plugin":
+                        print("stuff")
             return string
 
-        self.prompt = check(config)
+        self.prompt = lambda: check(config)
         return
 
     def _prompt(self) -> str:
         """
         returns the prompt\n
         if the current wokring directory is the same as the home directory\n
-        otherwise it replaces the \\x00 byte with the current wokring directory
+        otherwise it replaces the \\u9001 (unicode private use character) byte with the current wokring directory
         """
-        if self.home != os.getcwd():
-            return self.prompt.replace("\u0091", f"{os.getcwd()} ")
-        return self.prompt
+        if self.home != os.getcwd() + "\\":
+            return self.prompt().replace("\u0091", f"{os.getcwd()} ")
+        return self.prompt()
 
 
 # --- resources ---
@@ -446,56 +518,3 @@ class Colors:
     PURPLE = "\033[95m"
     CYAN = "\033[96m"
     WHITE = "\033[97m"
-
-
-commands = {
-    "clear": CLI.cls,
-    "echo": CLI.echo,
-    "ls": CLI.ls,
-    "cd": CLI.cd,
-    "display": CLI.display,
-    "mkfile": CLI.mkfile,
-    "rm": CLI.rm,
-    "cat": CLI.cat,
-    "catb": CLI.catb,
-    "chksum": CLI.checksum,
-    "config": CLI.config,
-    "--list": CLI.list_all,
-    "rmdir": CLI.rmdir,
-}
-browsers = ["brave", "opera"]
-
-"""
----
-added read file bytes (catb)
----
-
----
-changed \\x01 byte placeholder to unicode \\u0091 private use character in prompt class
----
-
----
-added file: usrconfig.py
-created base class
-added standard commands
-added write on quit
-added 'hot reload', i.e once you've configed you don't have to exit before your changes take effect
----
-
----
-added the system_process function
-which handles commands like nvim, python etc.
-instead of having to hard code all of the execution of these
----
-
----
-refactored system command handler
-fixed a bug with 'command not found'
-for some odd reason now the bug with the vs code external terminal fixed itself...
----
-
----
-added rmdir command 
-    because for some reason I forgot that one...
----
-"""
