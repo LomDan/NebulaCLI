@@ -17,4 +17,4 @@ NebulaCLI is a command line interface written in python.
 - Standard CLI commands
 - Integration with CLI tools such as Neovim, Git, etc.
 
-NebulaCLI is released under the Apache License Version 2, which is an open source license. You may contribute to this project, or use the code as you please as long as you adhere to its conditions. You can find a copy of the license text here: (LICENSE)[https://github.com/LomDan/NebulaCLI/blob/main/LICENSE].
+NebulaCLI is released under the Apache License Version 2, which is an open source license. You may contribute to this project, or use the code as you please as long as you adhere to its conditions. You can find a copy of the license text here: [LICENSE](https://github.com/LomDan/NebulaCLI/blob/main/LICENSE).
