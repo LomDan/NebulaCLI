@@ -10,11 +10,11 @@
 
 # About
 
-I started developing Nebula because I didn't particularly enjoy the way that powershell and command prompt work.
-I enjoyed developing and using Nebula, so I decided to turn it into an actual application. Nebula is, of course, free and entirely open source. I had originally started developing Nebula with python and decided to stick with as it makes it considerably easier for people to contribute to the project.
+NebulaCLI is a command line interface written in python.
 
 # Features
 
-Nebula has all the standard features that you would expect with a CLI, such as:
 - Standard CLI commands
 - Integration with CLI tools such as Neovim, Git, etc.
+
+NebulaCLI is released under the Apache License Version 2, which is an open source license. You may contribute to this project, or use the code as you please as long as you adhere to its conditions. You can find a copy of the license text here: (LICENSE)[https://github.com/LomDan/NebulaCLI/blob/main/LICENSE].
